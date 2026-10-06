@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Fruit Sorting AI</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            text-align: center;
+        }
+
+        #webcam-container canvas {
+            width: 320px;
+            height: 320px;
+        }
+
+        #prediction {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <h1>🍋🍅 Fruit Sorting AI</h1>
+
+    <button onclick="startAI()">START CAMERA</button>
+
+    <div id="webcam-container"></div>
+
+    <div id="prediction">
+        Waiting...
+    </div>
+
+
+    <script>
+
+        const URL = "./";
+
+        let model;
+        let webcam;
+
+
+        // ==============================
+        // START AI
+        // ==============================
+
+        async function startAI() {
+
+            const modelURL =
+                URL + "model.json";
+
+            const metadataURL =
+                URL + "metadata.json";
+
+
+            // Load Teachable Machine model
+
+            model = await tmImage.load(
+                modelURL,
+                metadataURL
+            );
+
+
+            // Start camera
+
+            webcam = new tmImage.Webcam(
+                320,
+                320,
+                true
+            );
+
+            await webcam.setup();
+
+            await webcam.play();
+
+
+            // Show camera
+
+            document
+                .getElementById("webcam-container")
+                .appendChild(webcam.canvas);
+
+
+            window.requestAnimationFrame(loop);
+
+        }
+
+
+        // ==============================
+        // LOOP
+        // ==============================
+
+        async function loop() {
+
+            webcam.update();
+
+            await predict();
+
+            window.requestAnimationFrame(loop);
+
+        }
+
+
+        // ==============================
+        // PREDICTION
+        // ==============================
+
+        async function predict() {
+
+            const prediction =
+                await model.predict(
+                    webcam.canvas
+                );
+
+
+            let highestProbability = 0;
+
+            let detectedFruit = "";
+
+
+            // Find highest prediction
+
+            for (
+                let i = 0;
+                i < prediction.length;
+                i++
+            ) {
+
+                if (
+                    prediction[i].probability >
+                    highestProbability
+                ) {
+
+                    highestProbability =
+                        prediction[i].probability;
+
+                    detectedFruit =
+                        prediction[i].className;
+
+                }
+
+            }
+
+
+            // Convert to percentage
+
+            const confidence =
+                highestProbability * 100;
+
+
+            // ==============================
+            // CONFIDENCE CHECK
+            // ==============================
+
+            if (confidence >= 50) {
+
+                document.getElementById(
+                    "prediction"
+                ).innerHTML =
+
+                    detectedFruit +
+                    "<br>" +
+                    confidence.toFixed(1) +
+                    "%";
+
+            }
+
+            else {
+
+                document.getElementById(
+                    "prediction"
+                ).innerHTML =
+
+                    "NO FRUIT DETECTED" +
+                    "<br>" +
+                    confidence.toFixed(1) +
+                    "%";
+
+            }
+
+        }
+
+    </script>
+
+</body>
+
+</html>
