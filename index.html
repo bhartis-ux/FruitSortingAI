@@ -20,16 +20,21 @@
             margin: 20px;
         }
 
+        h1 {
+            font-size: 28px;
+        }
+
         button {
             font-size: 20px;
             padding: 12px 25px;
             margin: 15px;
         }
 
-        #webcam-container canvas {
+        #video {
             width: 320px;
             max-width: 90vw;
             height: auto;
+            border-radius: 10px;
         }
 
         #prediction {
@@ -40,7 +45,7 @@
 
         #status {
             font-size: 18px;
-            margin-top: 15px;
+            margin: 15px;
         }
 
     </style>
@@ -57,10 +62,14 @@
     </button>
 
     <div id="status">
-        Ready to start...
+        Ready...
     </div>
 
-    <div id="webcam-container"></div>
+    <video
+        id="video"
+        autoplay
+        playsinline>
+    </video>
 
     <div id="prediction">
         Waiting...
@@ -69,11 +78,17 @@
 
 <script>
 
+    // =================================
+    // MODEL
+    // =================================
+
     const URL = "./";
 
     let model;
-    let webcam;
-    let cameraStarted = false;
+
+    let video;
+
+    let stream;
 
 
     // =================================
@@ -110,63 +125,60 @@
 
 
             // ==============================
-            // CREATE WEBCAM
+            // GET VIDEO ELEMENT
             // ==============================
 
-            webcam = new tmImage.Webcam(
-                320,
-                320,
-                true
-            );
+            video =
+                document.getElementById("video");
 
 
             // ==============================
-            // CAMERA SETUP
+            // START PHONE CAMERA
             // ==============================
 
-            await webcam.setup({
-                facingMode: "environment"
-            });
+            stream =
+                await navigator.mediaDevices.getUserMedia({
+
+                    video: {
+                        facingMode: {
+                            ideal: "environment"
+                        }
+                    },
+
+                    audio: false
+
+                });
 
 
-            await webcam.play();
+            video.srcObject =
+                stream;
 
 
-            cameraStarted = true;
-
-
-            // ==============================
-            // SHOW CAMERA
-            // ==============================
-
-            document
-                .getElementById("webcam-container")
-                .innerHTML = "";
-
-
-            document
-                .getElementById("webcam-container")
-                .appendChild(
-                    webcam.canvas
-                );
+            await video.play();
 
 
             document.getElementById("status").innerHTML =
-                "Camera started successfully";
+                "Camera started successfully ✅";
 
 
-            window.requestAnimationFrame(loop);
+            // ==============================
+            // START PREDICTION
+            // ==============================
+
+            predict();
 
 
         }
 
-        catch (error) {
+        catch(error) {
 
             console.error(error);
 
 
             document.getElementById("status").innerHTML =
-                "CAMERA ERROR: " +
+                "ERROR: " +
+                error.name +
+                " - " +
                 error.message;
 
         }
@@ -175,129 +187,76 @@
 
 
     // =================================
-    // LOOP
-    // =================================
-
-    async function loop() {
-
-        if (!cameraStarted) {
-            return;
-        }
-
-
-        webcam.update();
-
-        await predict();
-
-
-        window.requestAnimationFrame(loop);
-
-    }
-
-
-    // =================================
-    // PREDICTION
+    // PREDICTION LOOP
     // =================================
 
     async function predict() {
 
-        const prediction =
-            await model.predict(
-                webcam.canvas
-            );
+        if (!model || !video) {
 
-
-        let highestProbability = 0;
-
-        let detectedFruit = "";
-
-
-        // ==============================
-        // FIND HIGHEST PREDICTION
-        // ==============================
-
-        for (
-            let i = 0;
-            i < prediction.length;
-            i++
-        ) {
-
-            if (
-                prediction[i].probability >
-                highestProbability
-            ) {
-
-                highestProbability =
-                    prediction[i].probability;
-
-                detectedFruit =
-                    prediction[i].className;
-
-            }
+            return;
 
         }
 
 
-        const confidence =
-            highestProbability * 100;
+        try {
 
-
-        // ==============================
-        // FRUIT DETECTED
-        // ==============================
-
-        if (confidence >= 50) {
-
-            document.getElementById(
-                "prediction"
-            ).innerHTML =
-
-                detectedFruit +
-                "<br>" +
-                confidence.toFixed(1) +
-                "%";
-
-
-            // ==============================
-            // MIT APP INVENTOR
-            // ==============================
-
-            if (
-                window.AppInventor &&
-                window.AppInventor.setWebViewString
-            ) {
-
-                window.AppInventor.setWebViewString(
-                    detectedFruit
+            const prediction =
+                await model.predict(
+                    video
                 );
 
+
+            let highestProbability = 0;
+
+            let detectedFruit = "";
+
+
+            // ==============================
+            // FIND HIGHEST PREDICTION
+            // ==============================
+
+            for (
+                let i = 0;
+                i < prediction.length;
+                i++
+            ) {
+
+                if (
+                    prediction[i].probability >
+                    highestProbability
+                ) {
+
+                    highestProbability =
+                        prediction[i].probability;
+
+                    detectedFruit =
+                        prediction[i].className;
+
+                }
+
             }
 
-        }
+
+            const confidence =
+                highestProbability * 100;
 
 
-        // ==============================
-        // NO FRUIT
-        // ==============================
+            // ==============================
+            // FRUIT DETECTED
+            // ==============================
 
-        else {
+            if (confidence >= 50) {
 
-            document.getElementById(
-                "prediction"
-            ).innerHTML =
+                document.getElementById(
+                    "prediction"
+                ).innerHTML =
 
-                "NO FRUIT DETECTED" +
-                "<br>" +
-                confidence.toFixed(1) +
-                "%";
+                    detectedFruit +
+                    "<br>" +
+                    confidence.toFixed(1) +
+                    "%";
 
-        }
 
-    }
-
-</script>
-
-</body>
-
-</html>
+                // ==============================
 ```
