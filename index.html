@@ -1,5 +1,7 @@
+```html
 <!DOCTYPE html>
 <html>
+
 <head>
 
     <title>Fruit Sorting AI</title>
@@ -64,15 +66,11 @@
                 URL + "metadata.json";
 
 
-            // Load Teachable Machine model
-
             model = await tmImage.load(
                 modelURL,
                 metadataURL
             );
 
-
-            // Start camera
 
             webcam = new tmImage.Webcam(
                 320,
@@ -84,8 +82,6 @@
 
             await webcam.play();
 
-
-            // Show camera
 
             document
                 .getElementById("webcam-container")
@@ -99,100 +95,5 @@
 
         // ==============================
         // LOOP
-        // ==============================
-
-        async function loop() {
-
-            webcam.update();
-
-            await predict();
-
-            window.requestAnimationFrame(loop);
-
-        }
-
-
-        // ==============================
-        // PREDICTION
-        // ==============================
-
-        async function predict() {
-
-            const prediction =
-                await model.predict(
-                    webcam.canvas
-                );
-
-
-            let highestProbability = 0;
-
-            let detectedFruit = "";
-
-
-            // Find highest prediction
-
-            for (
-                let i = 0;
-                i < prediction.length;
-                i++
-            ) {
-
-                if (
-                    prediction[i].probability >
-                    highestProbability
-                ) {
-
-                    highestProbability =
-                        prediction[i].probability;
-
-                    detectedFruit =
-                        prediction[i].className;
-
-                }
-
-            }
-
-
-            // Convert to percentage
-
-            const confidence =
-                highestProbability * 100;
-
-
-            // ==============================
-            // CONFIDENCE CHECK
-            // ==============================
-
-            if (confidence >= 50) {
-
-                document.getElementById(
-                    "prediction"
-                ).innerHTML =
-
-                    detectedFruit +
-                    "<br>" +
-                    confidence.toFixed(1) +
-                    "%";
-
-            }
-
-            else {
-
-                document.getElementById(
-                    "prediction"
-                ).innerHTML =
-
-                    "NO FRUIT DETECTED" +
-                    "<br>" +
-                    confidence.toFixed(1) +
-                    "%";
-
-            }
-
-        }
-
-    </script>
-
-</body>
-
-</html>
+        // ===============
+```
