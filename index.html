@@ -4,6 +4,8 @@
 
 <head>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Fruit Sorting AI</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
@@ -15,11 +17,19 @@
         body {
             font-family: Arial;
             text-align: center;
+            margin: 20px;
+        }
+
+        button {
+            font-size: 20px;
+            padding: 12px 25px;
+            margin: 15px;
         }
 
         #webcam-container canvas {
             width: 320px;
-            height: 320px;
+            max-width: 90vw;
+            height: auto;
         }
 
         #prediction {
@@ -28,15 +38,27 @@
             margin-top: 20px;
         }
 
+        #status {
+            font-size: 18px;
+            margin-top: 15px;
+        }
+
     </style>
 
 </head>
+
 
 <body>
 
     <h1>🍋🍅 Fruit Sorting AI</h1>
 
-    <button onclick="startAI()">START CAMERA</button>
+    <button onclick="startAI()">
+        START CAMERA
+    </button>
+
+    <div id="status">
+        Ready to start...
+    </div>
 
     <div id="webcam-container"></div>
 
@@ -45,19 +67,30 @@
     </div>
 
 
-    <script>
+<script>
 
-        const URL = "./";
+    const URL = "./";
 
-        let model;
-        let webcam;
+    let model;
+    let webcam;
+    let cameraStarted = false;
 
 
-        // ==============================
-        // START AI
-        // ==============================
+    // =================================
+    // START AI
+    // =================================
 
-        async function startAI() {
+    async function startAI() {
+
+        try {
+
+            document.getElementById("status").innerHTML =
+                "Loading AI model...";
+
+
+            // ==============================
+            // LOAD MODEL
+            // ==============================
 
             const modelURL =
                 URL + "model.json";
@@ -72,28 +105,199 @@
             );
 
 
+            document.getElementById("status").innerHTML =
+                "AI model loaded. Starting camera...";
+
+
+            // ==============================
+            // CREATE WEBCAM
+            // ==============================
+
             webcam = new tmImage.Webcam(
                 320,
                 320,
                 true
             );
 
-            await webcam.setup();
+
+            // ==============================
+            // CAMERA SETUP
+            // ==============================
+
+            await webcam.setup({
+                facingMode: "environment"
+            });
+
 
             await webcam.play();
 
 
+            cameraStarted = true;
+
+
+            // ==============================
+            // SHOW CAMERA
+            // ==============================
+
             document
                 .getElementById("webcam-container")
-                .appendChild(webcam.canvas);
+                .innerHTML = "";
+
+
+            document
+                .getElementById("webcam-container")
+                .appendChild(
+                    webcam.canvas
+                );
+
+
+            document.getElementById("status").innerHTML =
+                "Camera started successfully";
 
 
             window.requestAnimationFrame(loop);
+
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+
+            document.getElementById("status").innerHTML =
+                "CAMERA ERROR: " +
+                error.message;
+
+        }
+
+    }
+
+
+    // =================================
+    // LOOP
+    // =================================
+
+    async function loop() {
+
+        if (!cameraStarted) {
+            return;
+        }
+
+
+        webcam.update();
+
+        await predict();
+
+
+        window.requestAnimationFrame(loop);
+
+    }
+
+
+    // =================================
+    // PREDICTION
+    // =================================
+
+    async function predict() {
+
+        const prediction =
+            await model.predict(
+                webcam.canvas
+            );
+
+
+        let highestProbability = 0;
+
+        let detectedFruit = "";
+
+
+        // ==============================
+        // FIND HIGHEST PREDICTION
+        // ==============================
+
+        for (
+            let i = 0;
+            i < prediction.length;
+            i++
+        ) {
+
+            if (
+                prediction[i].probability >
+                highestProbability
+            ) {
+
+                highestProbability =
+                    prediction[i].probability;
+
+                detectedFruit =
+                    prediction[i].className;
+
+            }
+
+        }
+
+
+        const confidence =
+            highestProbability * 100;
+
+
+        // ==============================
+        // FRUIT DETECTED
+        // ==============================
+
+        if (confidence >= 50) {
+
+            document.getElementById(
+                "prediction"
+            ).innerHTML =
+
+                detectedFruit +
+                "<br>" +
+                confidence.toFixed(1) +
+                "%";
+
+
+            // ==============================
+            // MIT APP INVENTOR
+            // ==============================
+
+            if (
+                window.AppInventor &&
+                window.AppInventor.setWebViewString
+            ) {
+
+                window.AppInventor.setWebViewString(
+                    detectedFruit
+                );
+
+            }
 
         }
 
 
         // ==============================
-        // LOOP
-        // ===============
+        // NO FRUIT
+        // ==============================
+
+        else {
+
+            document.getElementById(
+                "prediction"
+            ).innerHTML =
+
+                "NO FRUIT DETECTED" +
+                "<br>" +
+                confidence.toFixed(1) +
+                "%";
+
+        }
+
+    }
+
+</script>
+
+</body>
+
+</html>
 ```
